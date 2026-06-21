@@ -111,11 +111,13 @@
     <button class="close-x" data-close="login-overlay">✕</button>
     <h2>Admin login</h2>
     <p style="margin-bottom:16px; font-size:0.88rem;">Client-side demo gate only — swap for real auth before going live.</p>
+    <div class="field"><label>Email</label><input type="text" id="admin-email"></div>
     <div class="field"><label>Password</label><input type="password" id="admin-pw"></div>
     <div class="modal-actions"><button class="btn btn-aqua btn-sm" id="login-submit"><span class="sweep"></span>Log in</button></div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 <script>
   const releaseList = document.getElementById('release-list');
@@ -124,6 +126,7 @@
   const loginOverlay = document.getElementById('login-overlay');
 
   let pendingFile = null;
+  let releasesCache = [];
 
   function fmtBytes(bytes){
     if(bytes < 1024) return bytes + " B";
@@ -131,8 +134,11 @@
     return (bytes/(1024*1024)).toFixed(1) + " MB";
   }
 
-  function render(){
-    const releases = getReleases().sort((a,b)=> b.date.localeCompare(a.date));
+  async function render(){
+    const releases = await getReleases();
+    releasesCache = releases;
+    const admin = await isAdmin();
+
     releaseList.innerHTML = releases.map((r, i) => `
       <div class="glass-panel release-card">
         <div class="release-top">
@@ -144,18 +150,18 @@
         </div>
         <p class="release-notes">${r.notes}</p>
         <div class="release-foot">
-          <div class="file-meta">${r.filename} · ${r.sizeLabel}</div>
+          <div class="file-meta">${r.filename} · ${r.size_label}</div>
           <div class="dl-area" id="dl-${r.id}">
             <button class="btn btn-aqua" onclick="startDownload('${r.id}')"><span class="sweep"></span>Download</button>
             <div class="progress-shell"><div class="progress-fill"></div></div>
             <div class="progress-label"></div>
           </div>
         </div>
-        ${isAdmin() ? `<div class="row-actions" style="margin-top:14px;"><button class="btn btn-chrome btn-sm" onclick="deleteRelease('${r.id}')">Delete release</button></div>` : ``}
+        ${admin ? `<div class="row-actions" style="margin-top:14px;"><button class="btn btn-chrome btn-sm" onclick="deleteRelease('${r.id}')">Delete release</button></div>` : ``}
       </div>
     `).join("");
 
-    if(isAdmin()){
+    if(admin){
       adminToggleBtn.textContent = "Log out";
       uploadCard.classList.add('open');
     } else {
@@ -164,14 +170,14 @@
     }
   }
 
-  /* ---- Oracle-style fake download progress ---- */
+  /* ---- Oracle-style fake progress, then a real file download ---- */
   function startDownload(id){
     const area = document.getElementById('dl-' + id);
     const btn = area.querySelector('button');
     const shell = area.querySelector('.progress-shell');
     const fill = area.querySelector('.progress-fill');
     const label = area.querySelector('.progress-label');
-    const release = getReleases().find(r=>r.id===id);
+    const release = releasesCache.find(r=>r.id===id);
 
     btn.style.display = 'none';
     shell.style.display = 'block';
@@ -185,11 +191,14 @@
         label.textContent = "Done — preparing file...";
         fill.style.width = "100%";
         setTimeout(()=>{
-          if(release.dataUrl){
+          const url = getReleaseFileUrl(release.file_path);
+          if(url){
             const a = document.createElement('a');
-            a.href = release.dataUrl;
+            a.href = url;
             a.download = release.filename;
             document.body.appendChild(a); a.click(); a.remove();
+          } else {
+            alert("No file is attached to this release yet.");
           }
           btn.style.display = 'inline-flex';
           btn.innerHTML = '<span class="sweep"></span>Download again';
@@ -204,9 +213,10 @@
     }, 220);
   }
 
-  function deleteRelease(id){
+  async function deleteRelease(id){
     if(!confirm("Delete this release?")) return;
-    saveReleases(getReleases().filter(r=>r.id!==id));
+    const release = releasesCache.find(r=>r.id===id);
+    await deleteReleaseById(id, release ? release.file_path : null);
     render();
   }
 
@@ -214,17 +224,18 @@
   document.querySelectorAll('[data-close]').forEach(b=>{
     b.addEventListener('click', ()=> document.getElementById(b.dataset.close).classList.remove('open'));
   });
-  adminToggleBtn.addEventListener('click', ()=>{
-    if(isAdmin()){ logoutAdmin(); render(); }
+  adminToggleBtn.addEventListener('click', async ()=>{
+    if(await isAdmin()){ await logoutAdmin(); render(); }
     else { loginOverlay.classList.add('open'); }
   });
-  document.getElementById('login-submit').addEventListener('click', ()=>{
+  document.getElementById('login-submit').addEventListener('click', async ()=>{
+    const email = document.getElementById('admin-email').value;
     const pw = document.getElementById('admin-pw').value;
-    if(loginAdmin(pw)){
+    if(await loginAdmin(email, pw)){
       loginOverlay.classList.remove('open');
       document.getElementById('admin-pw').value = "";
       render();
-    } else { alert("Incorrect password."); }
+    } else { alert("Incorrect email or password."); }
   });
 
   /* ---- upload / dropzone ---- */
@@ -245,7 +256,7 @@
     fileChosen.textContent = `${file.name} · ${fmtBytes(file.size)}`;
   }
 
-  document.getElementById('publish-release-btn').addEventListener('click', ()=>{
+  document.getElementById('publish-release-btn').addEventListener('click', async ()=>{
     const version = document.getElementById('f-version').value.trim();
     const notes = document.getElementById('f-notes').value.trim();
     if(!version || !notes || !pendingFile){
@@ -253,34 +264,31 @@
       return;
     }
 
-    const finish = (dataUrl) => {
-      const releases = getReleases();
-      releases.push({
-        id: uid("r"),
-        version,
-        date: new Date().toISOString().slice(0,10),
-        notes,
-        filename: pendingFile.name,
-        sizeLabel: fmtBytes(pendingFile.size),
-        dataUrl
-      });
-      saveReleases(releases);
+    const btn = document.getElementById('publish-release-btn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="sweep"></span>Uploading...';
+
+    const filePath = await uploadReleaseFile(pendingFile);
+
+    const ok = await upsertRelease({
+      id: uid("r"),
+      version,
+      date: new Date().toISOString().slice(0,10),
+      notes,
+      filename: pendingFile.name,
+      size_label: fmtBytes(pendingFile.size),
+      file_path: filePath
+    });
+
+    btn.disabled = false;
+    btn.innerHTML = '<span class="sweep"></span>Publish release';
+
+    if(ok){
       pendingFile = null;
       fileChosen.textContent = "No file selected";
       document.getElementById('f-version').value = "";
       document.getElementById('f-notes').value = "";
       render();
-    };
-
-    // Files under ~5MB get embedded as a real downloadable data URL.
-    // Larger files are tracked as metadata only (browser storage has limits).
-    if(pendingFile.size <= 5*1024*1024){
-      const reader = new FileReader();
-      reader.onload = () => finish(reader.result);
-      reader.readAsDataURL(pendingFile);
-    } else {
-      alert("This file is over 5MB — it'll be listed with its version info, but for real hosting you'll want to point dataUrl at actual file storage (S3, R2, etc.) instead of the browser.");
-      finish(null);
     }
   });
 
