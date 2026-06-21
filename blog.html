@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Blog — Atlas</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  .page-head{ padding: 50px 0 10px; text-align:center; }
+  .page-head h1{ font-size:2.6rem; margin-bottom:12px; }
+  .page-head p{ max-width:520px; margin:0 auto; }
+  .toolbar{ display:flex; justify-content:flex-end; gap:10px; margin: 26px 0 18px; }
+  .post-list{ display:flex; flex-direction:column; gap:16px; margin-bottom:60px; }
+  .post-row{
+    display:flex; gap:20px; align-items:center; padding:22px 24px;
+    transition: transform .15s ease;
+  }
+  .post-row:hover{ transform: translateY(-2px); }
+  .post-row .jewel{
+    width:54px; height:54px; flex-shrink:0; border-radius:14px;
+    background: radial-gradient(circle at 30% 25%, #fff, var(--aqua-1) 30%, var(--aqua-3) 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,0.8) inset, 0 8px 16px -8px rgba(30,95,168,0.5);
+  }
+  .post-row .meta{ flex:1; min-width:0; }
+  .post-row h3{ font-size:1.18rem; margin-bottom:6px; }
+  .post-row p{ margin:0; font-size:0.9rem; }
+  .post-row .tags{ display:flex; gap:6px; margin-top:10px; flex-wrap:wrap; }
+  .tag-chip{
+    font-size:0.72rem; font-weight:700; padding:3px 10px; border-radius:999px;
+    background: linear-gradient(180deg,#fff,#E7ECF1); border:1px solid var(--line); color:var(--aqua-3);
+  }
+  .post-row .row-actions{ display:flex; gap:8px; flex-shrink:0;}
+
+  /* admin modal */
+  .modal-overlay{
+    position:fixed; inset:0; background: rgba(20,30,45,0.45); backdrop-filter: blur(3px);
+    display:none; align-items:flex-start; justify-content:center; z-index:200; padding: 60px 16px;
+    overflow-y:auto;
+  }
+  .modal-overlay.open{ display:flex; }
+  .modal{ width:100%; max-width:620px; padding:30px; }
+  .modal h2{ font-size:1.4rem; margin-bottom:18px; }
+  .field{ margin-bottom:16px; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+  .close-x{ position:absolute; top:18px; right:20px; cursor:pointer; color:var(--ink-soft); font-size:1.2rem; background:none; border:none;}
+</style>
+</head>
+<body>
+
+<div class="dock-wrap">
+  <nav class="dock">
+    <div class="dock-brand"><span class="dock-orb"></span> Atlas</div>
+    <a class="dock-link" href="index.html">Home</a>
+    <a class="dock-link" href="blog.html">Blog</a>
+    <a class="dock-link" href="downloads.html">Downloads</a>
+  </nav>
+</div>
+
+<div class="container">
+  <div class="page-head">
+    <h1>The Atlas Blog</h1>
+    <p>Syntax decisions, design parameters, and progress notes — posted as the language gets built.</p>
+  </div>
+
+  <div class="toolbar">
+    <button class="btn btn-chrome btn-sm" id="admin-toggle-btn"><span class="sweep"></span>Admin login</button>
+    <button class="btn btn-leaf btn-sm" id="new-post-btn" style="display:none;"><span class="sweep"></span>+ New post</button>
+  </div>
+
+  <div class="post-list" id="post-list"></div>
+</div>
+
+<footer>Atlas is an independent project. Built one keyword at a time. &copy; 2026.</footer>
+
+<!-- Admin login modal -->
+<div class="modal-overlay" id="login-overlay">
+  <div class="glass-panel modal">
+    <button class="close-x" data-close="login-overlay">✕</button>
+    <h2>Admin login</h2>
+    <p style="margin-bottom:16px; font-size:0.88rem;">This is a client-side demo gate — for a real deployment, swap this for proper authentication on a server.</p>
+    <div class="field">
+      <label>Password</label>
+      <input type="password" id="admin-pw" placeholder="••••••••">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-aqua btn-sm" id="login-submit"><span class="sweep"></span>Log in</button>
+    </div>
+  </div>
+</div>
+
+<!-- New / edit post modal -->
+<div class="modal-overlay" id="post-overlay">
+  <div class="glass-panel modal">
+    <button class="close-x" data-close="post-overlay">✕</button>
+    <h2 id="post-modal-title">New post</h2>
+    <input type="hidden" id="edit-post-id">
+    <div class="field"><label>Title</label><input type="text" id="f-title" placeholder="Why Atlas reads like a sentence"></div>
+    <div class="field"><label>Tags (comma separated)</label><input type="text" id="f-tags" placeholder="syntax, tutorial"></div>
+    <div class="field"><label>Excerpt</label><textarea id="f-excerpt" style="min-height:70px; font-family:'Inter';" placeholder="One or two sentences shown on the blog index."></textarea></div>
+    <div class="field"><label>Body (use blank lines for paragraphs)</label><textarea id="f-body" placeholder="Write the full post here..."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-aqua btn-sm" id="save-post-btn"><span class="sweep"></span>Publish</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+<script>
+  const listEl = document.getElementById('post-list');
+  const adminToggleBtn = document.getElementById('admin-toggle-btn');
+  const newPostBtn = document.getElementById('new-post-btn');
+  const loginOverlay = document.getElementById('login-overlay');
+  const postOverlay = document.getElementById('post-overlay');
+
+  function render(){
+    const posts = getPosts().sort((a,b)=> b.date.localeCompare(a.date));
+    listEl.innerHTML = posts.map(p => `
+      <div class="glass-panel post-row">
+        <div class="jewel"></div>
+        <a href="post.html?id=${p.id}" class="meta" style="text-decoration:none;">
+          <h3>${p.title}</h3>
+          <p>${fmtDate(p.date)} — ${p.excerpt}</p>
+          <div class="tags">${p.tags.map(t=>`<span class="tag-chip">${t}</span>`).join("")}</div>
+        </a>
+        ${isAdmin() ? `
+          <div class="row-actions">
+            <button class="btn btn-chrome btn-sm" onclick="editPost('${p.id}')">Edit</button>
+            <button class="btn btn-chrome btn-sm" onclick="deletePost('${p.id}')">Delete</button>
+          </div>` : ``}
+      </div>
+    `).join("");
+
+    if(isAdmin()){
+      adminToggleBtn.textContent = "Log out";
+      newPostBtn.style.display = "inline-flex";
+    } else {
+      adminToggleBtn.innerHTML = '<span class="sweep"></span>Admin login';
+      newPostBtn.style.display = "none";
+    }
+  }
+
+  document.querySelectorAll('[data-close]').forEach(b=>{
+    b.addEventListener('click', ()=> document.getElementById(b.dataset.close).classList.remove('open'));
+  });
+
+  adminToggleBtn.addEventListener('click', ()=>{
+    if(isAdmin()){ logoutAdmin(); render(); }
+    else { loginOverlay.classList.add('open'); }
+  });
+
+  document.getElementById('login-submit').addEventListener('click', ()=>{
+    const pw = document.getElementById('admin-pw').value;
+    if(loginAdmin(pw)){
+      loginOverlay.classList.remove('open');
+      document.getElementById('admin-pw').value = "";
+      render();
+    } else {
+      alert("Incorrect password.");
+    }
+  });
+
+  newPostBtn.addEventListener('click', ()=>{
+    document.getElementById('post-modal-title').textContent = "New post";
+    document.getElementById('edit-post-id').value = "";
+    document.getElementById('f-title').value = "";
+    document.getElementById('f-tags').value = "";
+    document.getElementById('f-excerpt').value = "";
+    document.getElementById('f-body').value = "";
+    postOverlay.classList.add('open');
+  });
+
+  function editPost(id){
+    const p = getPosts().find(x=>x.id===id);
+    if(!p) return;
+    document.getElementById('post-modal-title').textContent = "Edit post";
+    document.getElementById('edit-post-id').value = p.id;
+    document.getElementById('f-title').value = p.title;
+    document.getElementById('f-tags').value = p.tags.join(", ");
+    document.getElementById('f-excerpt').value = p.excerpt;
+    document.getElementById('f-body').value = p.body;
+    postOverlay.classList.add('open');
+  }
+
+  function deletePost(id){
+    if(!confirm("Delete this post?")) return;
+    savePosts(getPosts().filter(p=>p.id!==id));
+    render();
+  }
+
+  document.getElementById('save-post-btn').addEventListener('click', ()=>{
+    const id = document.getElementById('edit-post-id').value;
+    const title = document.getElementById('f-title').value.trim();
+    const tags = document.getElementById('f-tags').value.split(",").map(t=>t.trim()).filter(Boolean);
+    const excerpt = document.getElementById('f-excerpt').value.trim();
+    const body = document.getElementById('f-body').value.trim();
+    if(!title || !excerpt || !body){ alert("Title, excerpt, and body are required."); return; }
+
+    const posts = getPosts();
+    if(id){
+      const idx = posts.findIndex(p=>p.id===id);
+      posts[idx] = { ...posts[idx], title, tags, excerpt, body };
+    } else {
+      posts.push({ id: uid("p"), title, tags, excerpt, body, date: new Date().toISOString().slice(0,10) });
+    }
+    savePosts(posts);
+    postOverlay.classList.remove('open');
+    render();
+  });
+
+  render();
+</script>
+</body>
+</html>

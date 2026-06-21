@@ -1,0 +1,262 @@
+/* ============================================
+   ATLAS — Y2K Glass Design System
+   ============================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root{
+  --pearl: #EAF1F7;
+  --pearl-deep: #D7E3EE;
+  --panel: #F7F9FB;
+  --ink: #1B2A41;
+  --ink-soft: #4C5C70;
+
+  --aqua-1: #6FB6F2;
+  --aqua-2: #3E8EDE;
+  --aqua-3: #1E5FA8;
+
+  --chrome-1: #FDFEFF;
+  --chrome-2: #DCE1E6;
+  --chrome-3: #B7BEC6;
+
+  --leaf-1: #A6E36B;
+  --leaf-2: #8FD14F;
+  --leaf-3: #5E9C2E;
+
+  --line: #C4CDD6;
+  --shine: rgba(255,255,255,0.75);
+
+  --radius: 14px;
+  --radius-lg: 22px;
+
+  --shadow-soft: 0 1px 0 rgba(255,255,255,0.9) inset, 0 10px 24px -12px rgba(27,42,65,0.35);
+  --shadow-deep: 0 18px 40px -16px rgba(27,42,65,0.45);
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+
+body{
+  background:
+    radial-gradient(ellipse 900px 500px at 15% -10%, #FFFFFF 0%, transparent 60%),
+    radial-gradient(ellipse 1000px 700px at 110% 10%, #DCEBF9 0%, transparent 55%),
+    linear-gradient(180deg, var(--pearl) 0%, var(--pearl-deep) 100%);
+  background-attachment: fixed;
+  font-family: 'Inter', sans-serif;
+  color: var(--ink);
+  min-height: 100vh;
+}
+
+a{ color: inherit; text-decoration:none; }
+code, .mono, .code-block{ font-family: 'Space Mono', monospace; }
+
+h1,h2,h3,h4{
+  font-family:'Baloo 2', sans-serif;
+  margin:0;
+  letter-spacing:0.2px;
+}
+
+p{ line-height:1.65; color:var(--ink-soft); margin:0 0 1em; }
+
+/* ============== bevel / glass texture helpers ============== */
+.glass-panel{
+  background: linear-gradient(180deg, #FFFFFF 0%, var(--panel) 100%);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-soft);
+  position:relative;
+}
+.glass-panel::before{
+  content:"";
+  position:absolute; inset:0;
+  border-radius:inherit;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 18%);
+  pointer-events:none;
+}
+
+/* ============== TOP DOCK NAV ============== */
+.dock-wrap{
+  position: sticky; top:0; z-index:50;
+  display:flex; justify-content:center;
+  padding: 18px 16px 10px;
+}
+.dock{
+  display:flex; align-items:center; gap:6px;
+  padding: 8px 10px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(225,233,240,0.85));
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 14px 30px -14px rgba(27,42,65,0.4);
+}
+.dock-brand{
+  display:flex; align-items:center; gap:8px;
+  padding: 6px 14px 6px 8px;
+  font-family:'Baloo 2'; font-weight:800; font-size:1.05rem;
+  color:var(--ink);
+}
+.dock-orb{
+  width:30px; height:30px; border-radius:50%;
+  background: radial-gradient(circle at 32% 28%, #FFFFFF 0%, var(--leaf-1) 28%, var(--leaf-2) 60%, var(--leaf-3) 100%);
+  box-shadow: 0 2px 4px rgba(27,42,65,0.3), inset 0 -3px 5px rgba(0,0,0,0.15);
+}
+.dock a.dock-link{
+  padding: 9px 16px;
+  border-radius: 999px;
+  font-weight:600; font-size:0.92rem;
+  color: var(--ink-soft);
+  transition: all .18s ease;
+}
+.dock a.dock-link:hover{ color:var(--ink); background: rgba(255,255,255,0.6); }
+.dock a.dock-link.active{
+  color:#fff;
+  background: linear-gradient(180deg, var(--aqua-1), var(--aqua-3));
+  box-shadow: 0 1px 0 rgba(255,255,255,0.5) inset, 0 4px 10px -4px rgba(30,95,168,0.6);
+}
+
+/* ============== GLOSSY BUTTONS (signature element) ============== */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:8px;
+  position:relative; overflow:hidden;
+  padding: 13px 26px;
+  border-radius: 999px;
+  font-family:'Inter'; font-weight:700; font-size:0.95rem;
+  cursor:pointer; border:none;
+  transition: transform .12s ease, box-shadow .12s ease;
+  isolation:isolate;
+}
+.btn::after{
+  content:"";
+  position:absolute; left:6%; top:6%; width:88%; height:42%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0));
+  border-radius: 999px 999px 60% 60%;
+  pointer-events:none;
+}
+.btn:active{ transform: translateY(1px) scale(0.99); }
+
+.btn-aqua{
+  color:#fff;
+  background: linear-gradient(180deg, var(--aqua-1) 0%, var(--aqua-2) 48%, var(--aqua-3) 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 1px rgba(0,0,0,0.1) inset, 0 10px 18px -8px rgba(30,95,168,0.55);
+  text-shadow: 0 1px 1px rgba(0,40,80,0.3);
+}
+.btn-aqua:hover{ box-shadow: 0 1px 0 rgba(255,255,255,0.7) inset, 0 14px 24px -8px rgba(30,95,168,0.65); }
+
+.btn-leaf{
+  color:#22381a;
+  background: linear-gradient(180deg, var(--leaf-1) 0%, var(--leaf-2) 55%, var(--leaf-3) 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 10px 18px -8px rgba(94,156,46,0.5);
+  text-shadow: 0 1px 1px rgba(255,255,255,0.25);
+}
+
+.btn-chrome{
+  color: var(--ink);
+  background: linear-gradient(180deg, var(--chrome-1) 0%, var(--chrome-2) 55%, var(--chrome-3) 100%);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.9) inset, 0 8px 16px -8px rgba(27,42,65,0.4);
+  border: 1px solid #fff;
+}
+
+.btn-sm{ padding: 8px 18px; font-size:0.82rem; border-radius: 999px; }
+.btn[disabled]{ opacity:0.5; cursor:not-allowed; }
+
+/* shine sweep on hover, oracle-style */
+.btn .sweep{
+  position:absolute; top:-50%; left:-30%;
+  width:30%; height:200%;
+  background: linear-gradient(115deg, transparent, rgba(255,255,255,0.55), transparent);
+  transform: skewX(-20deg) translateX(-120%);
+  transition: transform .6s ease;
+  pointer-events:none;
+}
+.btn:hover .sweep{ transform: skewX(-20deg) translateX(420%); }
+
+/* ============== code chip / syntax preview ============== */
+.code-chip{
+  display:inline-block;
+  background: linear-gradient(180deg,#23304a,#101a2c);
+  color:#A6E36B;
+  border-radius: 10px;
+  padding: 2px 9px;
+  font-size:0.85em;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.08) inset, 0 4px 10px -4px rgba(0,0,0,0.5);
+}
+
+.code-block{
+  background: linear-gradient(180deg, #1A2438 0%, #0E1626 100%);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  color: #DCE6F2;
+  font-size:0.92rem;
+  line-height:1.85;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.06) inset, var(--shadow-deep);
+  border: 1px solid #0A111F;
+  overflow-x:auto;
+}
+.code-block .kw{ color:#8FD14F; font-weight:700; }
+.code-block .str{ color:#FFD580; }
+.code-block .cm{ color:#6B7C99; }
+
+/* ============== loading / progress bar (Oracle download style) ============== */
+.progress-shell{
+  width:100%; height:22px;
+  background: linear-gradient(180deg,#E2E7EC,#C9D0D8);
+  border-radius: 999px;
+  border:1px solid #B2BAC3;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.7), inset 0 2px 4px rgba(27,42,65,0.25);
+  overflow:hidden;
+  position:relative;
+}
+.progress-fill{
+  height:100%;
+  width:0%;
+  border-radius:999px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0 10px, rgba(255,255,255,0) 10px 20px),
+    linear-gradient(180deg, var(--aqua-1), var(--aqua-3));
+  box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset;
+  transition: width .25s ease;
+  background-size: 200% 100%, auto;
+  animation: barstripes 1.1s linear infinite;
+}
+@keyframes barstripes{ from{background-position:0 0,0 0;} to{background-position:40px 0,0 0;} }
+
+/* ============== misc ============== */
+.container{ max-width: 1080px; margin:0 auto; padding: 0 24px; }
+.eyebrow{
+  font-family:'Space Mono'; font-size:0.72rem; letter-spacing:2px; text-transform:uppercase;
+  color: var(--aqua-3); font-weight:700;
+}
+.divider{ height:1px; background: linear-gradient(90deg, transparent, var(--line), transparent); margin: 48px 0; }
+
+.badge-version{
+  font-family:'Space Mono'; font-size:0.75rem; font-weight:700;
+  background: linear-gradient(180deg,#fff,#E7ECF1);
+  border:1px solid var(--line);
+  padding:4px 10px; border-radius:999px;
+  color:var(--aqua-3);
+  box-shadow: 0 1px 0 #fff inset;
+}
+
+footer{
+  text-align:center; padding: 50px 20px 60px;
+  color: var(--ink-soft); font-size:0.85rem;
+}
+
+input[type=text], input[type=password], input[type=number], textarea{
+  width:100%;
+  font-family:'Inter';
+  font-size:0.95rem;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  box-shadow: inset 0 1px 3px rgba(27,42,65,0.08);
+  color: var(--ink);
+}
+textarea{ font-family:'Space Mono'; resize:vertical; min-height:140px;}
+label{ font-weight:600; font-size:0.85rem; color:var(--ink-soft); display:block; margin-bottom:6px;}
+
+@media (max-width: 720px){
+  .dock{ flex-wrap:wrap; justify-content:center; }
+  .dock a.dock-link{ padding:8px 12px; font-size:0.85rem; }
+}
