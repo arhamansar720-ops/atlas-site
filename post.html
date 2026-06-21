@@ -40,32 +40,35 @@
 
 <footer>Atlas is an independent project. Built one keyword at a time. &copy; 2026.</footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 <script>
-  const params = new URLSearchParams(location.search);
-  const id = params.get('id');
-  const post = getPosts().find(p => p.id === id);
-  const wrap = document.getElementById('post-wrap');
+  (async () => {
+    const params = new URLSearchParams(location.search);
+    const id = params.get('id');
+    const post = await getPostById(id);
+    const wrap = document.getElementById('post-wrap');
 
-  if(!post){
-    wrap.innerHTML = `<div class="not-found"><h1>Post not found</h1><p>It may have been removed.</p><a href="blog.html" class="btn btn-aqua"><span class="sweep"></span>Back to blog</a></div>`;
-  } else {
-    const paragraphs = post.body.split(/\n\n+/).map(block => {
-      if(block.trim().startsWith('<pre')) return block;
-      return `<p>${block.replace(/\n/g,'<br>')}</p>`;
-    }).join("\n");
+    if(!post){
+      wrap.innerHTML = `<div class="not-found"><h1>Post not found</h1><p>It may have been removed.</p><a href="blog.html" class="btn btn-aqua"><span class="sweep"></span>Back to blog</a></div>`;
+    } else {
+      const paragraphs = post.body.split(/\n\n+/).map(block => {
+        if(block.trim().startsWith('<pre')) return block;
+        return `<p>${block.replace(/\n/g,'<br>')}</p>`;
+      }).join("\n");
 
-    wrap.innerHTML = `
-      <a href="blog.html" class="back-link">← Back to blog</a>
-      <h1>${post.title}</h1>
-      <div class="post-meta">
-        <span class="eyebrow" style="margin:0;">${fmtDate(post.date)}</span>
-        <div class="tags">${post.tags.map(t=>`<span class="tag-chip">${t}</span>`).join("")}</div>
-      </div>
-      <div class="post-body">${paragraphs}</div>
-    `;
-    document.title = post.title + " — Atlas";
-  }
+      wrap.innerHTML = `
+        <a href="blog.html" class="back-link">← Back to blog</a>
+        <h1>${post.title}</h1>
+        <div class="post-meta">
+          <span class="eyebrow" style="margin:0;">${fmtDate(post.date)}</span>
+          <div class="tags">${post.tags.map(t=>`<span class="tag-chip">${t}</span>`).join("")}</div>
+        </div>
+        <div class="post-body">${paragraphs}</div>
+      `;
+      document.title = post.title + " — Atlas";
+    }
+  })();
 </script>
 </body>
 </html>
