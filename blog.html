@@ -79,6 +79,10 @@
     <h2>Admin login</h2>
     <p style="margin-bottom:16px; font-size:0.88rem;">This is a client-side demo gate — for a real deployment, swap this for proper authentication on a server.</p>
     <div class="field">
+      <label>Email</label>
+      <input type="text" id="admin-email" placeholder="you@example.com">
+    </div>
+    <div class="field">
       <label>Password</label>
       <input type="password" id="admin-pw" placeholder="••••••••">
     </div>
@@ -104,6 +108,7 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 <script>
   const listEl = document.getElementById('post-list');
@@ -112,8 +117,10 @@
   const loginOverlay = document.getElementById('login-overlay');
   const postOverlay = document.getElementById('post-overlay');
 
-  function render(){
-    const posts = getPosts().sort((a,b)=> b.date.localeCompare(a.date));
+  async function render(){
+    const posts = await getPosts();
+    const admin = await isAdmin();
+
     listEl.innerHTML = posts.map(p => `
       <div class="glass-panel post-row">
         <div class="jewel"></div>
@@ -122,7 +129,7 @@
           <p>${fmtDate(p.date)} — ${p.excerpt}</p>
           <div class="tags">${p.tags.map(t=>`<span class="tag-chip">${t}</span>`).join("")}</div>
         </a>
-        ${isAdmin() ? `
+        ${admin ? `
           <div class="row-actions">
             <button class="btn btn-chrome btn-sm" onclick="editPost('${p.id}')">Edit</button>
             <button class="btn btn-chrome btn-sm" onclick="deletePost('${p.id}')">Delete</button>
@@ -130,7 +137,7 @@
       </div>
     `).join("");
 
-    if(isAdmin()){
+    if(admin){
       adminToggleBtn.textContent = "Log out";
       newPostBtn.style.display = "inline-flex";
     } else {
@@ -143,19 +150,20 @@
     b.addEventListener('click', ()=> document.getElementById(b.dataset.close).classList.remove('open'));
   });
 
-  adminToggleBtn.addEventListener('click', ()=>{
-    if(isAdmin()){ logoutAdmin(); render(); }
+  adminToggleBtn.addEventListener('click', async ()=>{
+    if(await isAdmin()){ await logoutAdmin(); render(); }
     else { loginOverlay.classList.add('open'); }
   });
 
-  document.getElementById('login-submit').addEventListener('click', ()=>{
+  document.getElementById('login-submit').addEventListener('click', async ()=>{
+    const email = document.getElementById('admin-email').value;
     const pw = document.getElementById('admin-pw').value;
-    if(loginAdmin(pw)){
+    if(await loginAdmin(email, pw)){
       loginOverlay.classList.remove('open');
       document.getElementById('admin-pw').value = "";
       render();
     } else {
-      alert("Incorrect password.");
+      alert("Incorrect email or password.");
     }
   });
 
@@ -169,8 +177,8 @@
     postOverlay.classList.add('open');
   });
 
-  function editPost(id){
-    const p = getPosts().find(x=>x.id===id);
+  async function editPost(id){
+    const p = await getPostById(id);
     if(!p) return;
     document.getElementById('post-modal-title').textContent = "Edit post";
     document.getElementById('edit-post-id').value = p.id;
@@ -181,13 +189,13 @@
     postOverlay.classList.add('open');
   }
 
-  function deletePost(id){
+  async function deletePost(id){
     if(!confirm("Delete this post?")) return;
-    savePosts(getPosts().filter(p=>p.id!==id));
+    await deletePostById(id);
     render();
   }
 
-  document.getElementById('save-post-btn').addEventListener('click', ()=>{
+  document.getElementById('save-post-btn').addEventListener('click', async ()=>{
     const id = document.getElementById('edit-post-id').value;
     const title = document.getElementById('f-title').value.trim();
     const tags = document.getElementById('f-tags').value.split(",").map(t=>t.trim()).filter(Boolean);
@@ -195,16 +203,15 @@
     const body = document.getElementById('f-body').value.trim();
     if(!title || !excerpt || !body){ alert("Title, excerpt, and body are required."); return; }
 
-    const posts = getPosts();
-    if(id){
-      const idx = posts.findIndex(p=>p.id===id);
-      posts[idx] = { ...posts[idx], title, tags, excerpt, body };
-    } else {
-      posts.push({ id: uid("p"), title, tags, excerpt, body, date: new Date().toISOString().slice(0,10) });
+    const post = id
+      ? { id, title, tags, excerpt, body, date: (await getPostById(id)).date }
+      : { id: uid("p"), title, tags, excerpt, body, date: new Date().toISOString().slice(0,10) };
+
+    const ok = await upsertPost(post);
+    if(ok){
+      postOverlay.classList.remove('open');
+      render();
     }
-    savePosts(posts);
-    postOverlay.classList.remove('open');
-    render();
   });
 
   render();
