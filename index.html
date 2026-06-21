@@ -147,19 +147,23 @@ main();</pre>
   Atlas is an independent project. Built one keyword at a time. &copy; 2026.
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="script.js"></script>
 <script>
-  const latest = getPosts().slice(0,3);
-  document.getElementById('latest-posts').innerHTML = latest.map(p => `
-    <a href="post.html?id=${p.id}" style="text-decoration:none;">
-      <div class="glass-panel post-card">
-        <div class="eyebrow">${fmtDate(p.date)}</div>
-        <h3>${p.title}</h3>
-        <p>${p.excerpt}</p>
-        <div class="read">Read post →</div>
-      </div>
-    </a>
-  `).join("");
+  (async () => {
+    const posts = await getPosts();
+    const latest = posts.slice(0,3);
+    document.getElementById('latest-posts').innerHTML = latest.map(p => `
+      <a href="post.html?id=${p.id}" style="text-decoration:none;">
+        <div class="glass-panel post-card">
+          <div class="eyebrow">${fmtDate(p.date)}</div>
+          <h3>${p.title}</h3>
+          <p>${p.excerpt}</p>
+          <div class="read">Read post →</div>
+        </div>
+      </a>
+    `).join("");
+  })();
 </script>
 </body>
 </html>
